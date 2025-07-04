@@ -1,6 +1,8 @@
 package med.voll.api.exception;
 
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.ConstraintViolation;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -13,6 +15,7 @@ import org.springframework.web.HttpRequestMethodNotSupportedException;
 import jakarta.validation.ConstraintViolationException;
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -25,11 +28,7 @@ public class GlobalExceptionHandler {
             MethodArgumentNotValidException ex, WebRequest request) {
 
         Map<String, String> errors = new HashMap<>();
-        ex.getBindingResult().getAllErrors().forEach((error) -> {
-            String fieldName = ((FieldError) error).getField();
-            String errorMessage = error.getDefaultMessage();
-            errors.put(fieldName, errorMessage);
-        });
+        ex.getFieldErrors().forEach(e -> errors.put(e.getField(), e.getDefaultMessage()));
 
         ErrorResponse errorResponse = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
@@ -160,15 +159,112 @@ public class GlobalExceptionHandler {
 
         ErrorResponse errorResponse = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
-                .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                .status(HttpStatus.BAD_REQUEST.value())
                 .error("Erro Interno do Servidor")
                 .message("Ocorreu um erro inesperado. Tente novamente mais tarde.")
                 .path(request.getDescription(false).replace("uri=", ""))
                 .build();
 
-        // Log da exceção para debug
-        ex.printStackTrace();
 
-        return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(EntityNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleEntityNotFoundException(Exception ex, WebRequest request) {
+
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.NOT_FOUND.value())
+                .error("Entidade não encontrada")
+                .message("Entidade não encontrada.")
+                .path(request.getDescription(false).replace("uri=", ""))
+                .build();
+
+        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleDataIntegrityViolation(
+            DataIntegrityViolationException ex, WebRequest request) {
+
+        String errorMessage = "Violação de integridade dos dados";
+        String fieldName = null;
+        Map<String, String> errors = new HashMap<>();
+
+        // Tenta extrair informação mais específica da exceção
+        if (ex.getCause() != null && ex.getCause().getMessage() != null) {
+            String cause = ex.getCause().getMessage();
+
+            if (cause.contains("Duplicate entry")) {
+                errorMessage = "Dados duplicados - registro já existe";
+                fieldName = extractFieldFromDuplicateError(cause);
+            } else if (cause.contains("foreign key constraint")) {
+                errorMessage = "Violação de chave estrangeira - dados relacionados";
+                fieldName = extractFieldFromForeignKeyError(cause);
+            } else if (cause.contains("cannot be null")) {
+                errorMessage = "Campo obrigatório não pode ser nulo";
+                fieldName = extractFieldFromNullError(cause);
+            }
+        }
+
+        // Se conseguiu identificar o campo, adiciona no mapa de erros
+        if (fieldName != null) {
+            errors.put(fieldName, errorMessage);
+        }
+
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.CONFLICT.value())
+                .error("Erro de Integridade")
+                .message(errorMessage)
+                .path(request.getDescription(false).replace("uri=", ""))
+                .validationErrors(errors.isEmpty() ? null : errors)
+                .build();
+
+        return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
+    }
+
+    // Métodos auxiliares para extrair o nome do campo
+    private String extractFieldFromDuplicateError(String message) {
+        // Exemplo: "Duplicate entry 'valor' for key 'uk_email'"
+        if (message.contains("for key")) {
+            String[] parts = message.split("for key '");
+            if (parts.length > 1) {
+                return parts[1].split("'")[0].replace("uk_", "").replace("idx_", "");
+            }
+        }
+        return "campo_duplicado";
+    }
+
+    private String extractFieldFromForeignKeyError(String message) {
+        // Exemplo: "Cannot add or update a child row: a foreign key constraint fails"
+        if (message.contains("FOREIGN KEY")) {
+            // Lógica para extrair o nome da coluna da constraint
+            String[] parts = message.split("FOREIGN KEY \\(`");
+            if (parts.length > 1) {
+                return parts[1].split("`")[0];
+            }
+        }
+        return "campo_relacionado";
+    }
+
+    private String extractFieldFromNullError(String message) {
+        // Exemplo: "Column 'nome' cannot be null"
+        if (message.contains("Column '")) {
+            String[] parts = message.split("Column '");
+            if (parts.length > 1) {
+                return parts[1].split("'")[0];
+            }
+        }
+        return "campo_obrigatorio";
+    }
+
+    private record DadosErroValidacao(
+            String field,
+            String message
+    ) {
+        public DadosErroValidacao(FieldError error) {
+            this(error.getField(), error.getDefaultMessage());
+        }
     }
 }
