@@ -1,4 +1,4 @@
-package med.voll.api.exception;
+package med.voll.api.infra.exception;
 
 class ResourceNotFoundException extends RuntimeException {
     public ResourceNotFoundException(String message) {
