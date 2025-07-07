@@ -25,7 +25,7 @@ public class AutenticacaoController {
     private TokenService tokenService;
 
     @PostMapping
-    public ResponseEntity<String> efetuarLogin(@RequestBody @Valid DadosAutenticacao dados) {
+    public ResponseEntity<DadosTokenJWT> efetuarLogin(@RequestBody @Valid DadosAutenticacao dados) {
         var authenticationtoken = new UsernamePasswordAuthenticationToken(
                 dados.login(), dados.senha());
         var authentication = manager.authenticate(authenticationtoken);
@@ -34,7 +34,5 @@ public class AutenticacaoController {
 
         return ResponseEntity.ok(new DadosTokenJWT(tokenJWT));
     }
-
-
 
 }
