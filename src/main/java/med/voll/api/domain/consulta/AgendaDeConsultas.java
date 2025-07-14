@@ -1,6 +1,7 @@
 package med.voll.api.domain.consulta;
 
 import lombok.RequiredArgsConstructor;
+import med.voll.api.domain.consulta.validacoes.ValidacaoException;
 import med.voll.api.domain.medico.Medico;
 import med.voll.api.domain.medico.MedicoRepository;
 import med.voll.api.domain.paciente.PacienteRepository;

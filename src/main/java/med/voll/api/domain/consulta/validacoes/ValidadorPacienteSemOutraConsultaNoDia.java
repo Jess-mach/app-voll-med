@@ -2,7 +2,6 @@ package med.voll.api.domain.consulta.validacoes;
 
 import med.voll.api.domain.consulta.ConsultaRepository;
 import med.voll.api.domain.consulta.DadosAgendamentoConsulta;
-import med.voll.api.domain.consulta.ValidacaoException;
 
 public class ValidadorPacienteSemOutraConsultaNoDia {
 
