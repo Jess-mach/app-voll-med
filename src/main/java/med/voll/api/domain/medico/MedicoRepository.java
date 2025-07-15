@@ -26,7 +26,7 @@ public interface MedicoRepository extends JpaRepository< Medico, Long> {
             limit 1
             """)
     Medico escolherMedicoAleatorioLivreNaData
-            (Especialidade especialidade, @NotNull @Future LocalDateTime data);
+            (Especialidade especialidade, LocalDateTime data);
 
 
     @Query("""
