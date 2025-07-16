@@ -1,5 +1,6 @@
 package med.voll.api.domain.medico;
 
+import jakarta.transaction.Transactional;
 import med.voll.api.domain.consulta.Consulta;
 import med.voll.api.domain.endereco.DadosEndereco;
 import med.voll.api.domain.paciente.DadosCadastroPaciente;
@@ -16,6 +17,7 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.TemporalAdjusters;
+import java.util.Random;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -23,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ActiveProfiles("test")
+@Transactional
 class MedicoRepositoryTest {
 
     @Autowired
@@ -49,8 +52,8 @@ class MedicoRepositoryTest {
 
         var paciente = cadastrarPaciente(
                 "Beltrano",
-                "paciente@email.com",
-                "12345678901"
+                gerar11NumerosAleatorios() + "@email.com",
+                gerar11NumerosAleatorios()
         );
 
         cadastrarConsulta(medico, paciente, proximaSegundaAs10);
@@ -127,6 +130,15 @@ class MedicoRepositoryTest {
                 "DF",
                 "25485975"
         );
+    }
+
+    private static final Random random = new Random();
+
+    /**
+     * Gera 11 números aleatórios entre 0 e 100
+     */
+    public static String gerar11NumerosAleatorios() {
+        return String.format("%011d", Math.abs(new Random().nextLong() % 100000000000L));
     }
 
 }
