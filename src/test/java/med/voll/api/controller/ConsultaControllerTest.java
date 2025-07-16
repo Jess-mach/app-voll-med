@@ -79,7 +79,7 @@ class ConsultaControllerTest {
     @DisplayName("Deveria devolver codigo http 200 quando informações estão validas")
     @WithMockUser
     void agendar_cenario2() throws Exception {
-        var data = LocalDateTime.now().plusHours(1);
+        var data = LocalDateTime.of(2027,3,10,9,0);
         var especialidade = Especialidade.CARDIOLOGIA;
 
         Paciente paciente = mockPaciente();
